@@ -13,7 +13,7 @@ get_child_handles() -> list[int] method. HeapNode below is a given
 example object shaped this way, used by the cyclic-structure test.
 """
 
-from typing import Any, List
+from typing import Any, Dict, List
 
 
 class HeapNode:
@@ -33,17 +33,22 @@ class HeapNode:
 
 class GCHeap:
     def __init__(self) -> None:
-        # TODO: internal storage -- e.g. {handle: (obj, refcount)} -- and a handle counter.
-        raise NotImplementedError
+        self._objects: Dict[int, Any] = {}
+        self._refcounts: Dict[int, int] = {}
+        self._next_handle = 1
 
     def allocate(self, obj: Any) -> int:
         """Store obj, return a new handle. Initial refcount is 1 (the creating reference)."""
-        # TODO
-        raise NotImplementedError
+        handle = self._next_handle
+        self._next_handle += 1
+        self._objects[handle] = obj
+        self._refcounts[handle] = 1
+        return handle
 
     def incref(self, handle: int) -> None:
-        # TODO
-        raise NotImplementedError
+        if handle not in self._refcounts:
+            raise ValueError(f"incref({handle}): handle is not alive")
+        self._refcounts[handle] += 1
 
     def decref(self, handle: int) -> None:
         """
@@ -51,14 +56,24 @@ class GCHeap:
         cascade-decref every handle returned by the freed object's
         get_child_handles() (if it has that method), recursively.
         """
-        # TODO
-        raise NotImplementedError
+        if handle not in self._refcounts:
+            raise ValueError(f"decref({handle}): handle is not alive")
+        worklist = [handle]
+        while worklist:
+            h = worklist.pop()
+            self._refcounts[h] -= 1
+            if self._refcounts[h] > 0:
+                continue
+            obj = self._objects.pop(h)
+            del self._refcounts[h]
+            children = obj.get_child_handles() if hasattr(obj, "get_child_handles") else []
+            for child in children:
+                if child in self._refcounts:
+                    worklist.append(child)
 
     def is_alive(self, handle: int) -> bool:
-        # TODO
-        raise NotImplementedError
+        return handle in self._refcounts
 
     def live_count(self) -> int:
         """Number of currently-alive (refcount > 0) handles."""
-        # TODO
-        raise NotImplementedError
+        return len(self._refcounts)

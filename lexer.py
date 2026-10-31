@@ -1,8 +1,5 @@
 """
-PA 5 dependency: paste in YOUR OWN completed PA 2 lexer.py here.
-(Needed transitively -- symtable.py imports from parser.py, which
-imports from this file. PA 5's own new work doesn't touch lexing or
-parsing directly.)
+PA 3 dependency: paste in YOUR OWN completed PA 2 lexer.py here.
 
 This is the same file from PA 2's repo -- copy your own working
 tokenize() implementation over this stub before starting parser.py.
@@ -30,9 +27,31 @@ class LexError(Exception):
     pass
 
 
-# TODO: build your master regex here, e.g.:
-# _MASTER_RE = re.compile(r"(?P<NUMBER>\d+)|(?P<IDENT>[A-Za-z_]\w*)|...")
-
+_TOKEN_SPEC = [
+    ("NEWLINE", r"\n"),
+    ("WS",      r"[ \t]+"),
+    ("COMMENT", r"#[^\n]*"),
+    ("NUMBER",  r"\d+"),
+    ("IDENT",   r"[A-Za-z_][A-Za-z0-9_]*"),
+    ("PLUS",    r"\+"),
+    ("MINUS",   r"-"),
+    ("STAR",    r"\*"),
+    ("SLASH",   r"/"),
+    ("LPAREN",  r"\("),
+    ("RPAREN",  r"\)"),
+    ("ASSIGN",  r"="),
+    ("SEMI",    r";"),
+]
+ 
+_MASTER_RE = re.compile(
+    "|".join(f"(?P<{name}>{pattern})" for name, pattern in _TOKEN_SPEC)
+)
+ 
+_KEYWORDS = {
+    "let": "LET",
+}
+ 
+_SKIP = {"WS", "COMMENT"}
 
 def tokenize(source: str) -> List[Token]:
     """
@@ -43,5 +62,35 @@ def tokenize(source: str) -> List[Token]:
     them. Track 1-indexed line numbers. Raise LexError (with the
     offending character and line) on unrecognized input.
     """
-    # TODO
-    raise NotImplementedError
+    tokens: List[Token] = []
+    pos = 0
+    line = 1
+    length = len(source)
+ 
+    while pos < length:
+        match = _MASTER_RE.match(source, pos)
+ 
+        if match is None:
+            bad_char = source[pos]
+            raise LexError(
+                f"Unrecognized character {bad_char!r} on line {line}"
+            )
+ 
+        kind = match.lastgroup
+        lexeme = match.group()
+        pos = match.end()
+ 
+        if kind == "NEWLINE":
+            line += 1
+            continue
+ 
+        if kind in _SKIP:
+            continue
+ 
+        if kind == "IDENT" and lexeme in _KEYWORDS:
+            kind = _KEYWORDS[lexeme]
+ 
+        tokens.append(Token(kind, lexeme, line))
+ 
+    tokens.append(Token("EOF", "", line))
+    return tokens

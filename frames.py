@@ -1,8 +1,4 @@
 """
-PA 7 dependency: paste in YOUR OWN completed PA 6 frames.py here.
-
-Original header preserved below for reference:
-
 PA 6: The Activation Record -- starter.
 
 Complete ActivationRecord and CallStack below. See
@@ -32,28 +28,32 @@ class ActivationRecord:
         static_link: Optional["ActivationRecord"],
         dynamic_link: Optional["ActivationRecord"],
     ) -> None:
-        # TODO: store all six arguments as attributes of the same names.
-        raise NotImplementedError
+        self.function_name = function_name
+        self.parameters = parameters
+        self.locals_env = locals_env
+        self.return_address = return_address
+        self.static_link = static_link
+        self.dynamic_link = dynamic_link
 
 
 class CallStack:
     def __init__(self) -> None:
-        # TODO: internal storage for the stack of frames.
-        raise NotImplementedError
+        self._frames: List[ActivationRecord] = []
 
     def push(self, record: ActivationRecord) -> None:
-        # TODO
-        raise NotImplementedError
+        self._frames.append(record)
 
     def pop(self) -> ActivationRecord:
         """Remove and return the top frame."""
-        # TODO
-        raise NotImplementedError
+        if not self._frames:
+            raise IndexError("pop from an empty call stack")
+        return self._frames.pop()
 
     def current(self) -> ActivationRecord:
         """Return (without removing) the top frame."""
-        # TODO
-        raise NotImplementedError
+        if not self._frames:
+            raise IndexError("current() on an empty call stack")
+        return self._frames[-1]
 
     def trace(self) -> List[str]:
         """
@@ -61,5 +61,14 @@ class CallStack:
         stack first (oldest call first). Format is up to you, but
         each line must include the function_name and its parameters.
         """
-        # TODO
-        raise NotImplementedError
+        lines = []
+        for depth, frame in enumerate(self._frames):
+            params = ", ".join(f"{k}={v!r}" for k, v in frame.parameters.items())
+            caller = frame.dynamic_link.function_name if frame.dynamic_link else "None"
+            parent = frame.static_link.function_name if frame.static_link else "None"
+            lines.append(
+                f"[{depth}] {frame.function_name}({params}) "
+                f"returns to: {frame.return_address} | "
+                f"dynamic_link: {caller} | static_link: {parent}"
+            )
+        return lines
